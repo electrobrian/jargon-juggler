@@ -1,0 +1,1 @@
+BOT_LOGLEVEL=debug TWITCH_CHANNEL=electrobrains TWITCH_USERNAME=JargonJuggler TWITCH_PASSWORD=oauth:io62bcx9c62xrm68vsqi5l76na0n0x RUBYOPT=-Ilib

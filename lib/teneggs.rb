@@ -25,6 +25,7 @@ module Teneggs
         register_handler(Teneggs::QuoteCommandHandler)
         register_handler(Teneggs::DefendCommandHandler)
         register_handler(Teneggs::AttackCommandHandler)
+        register_handler(Twitch::Bot::Client::AuthenticatedHandler)
       end
     end
 
