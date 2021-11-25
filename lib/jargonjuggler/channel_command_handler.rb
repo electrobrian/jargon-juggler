@@ -1,3 +1,6 @@
+require_relative "game"
+require_relative "game/anagrammer"
+
 # frozen_string_literal: true
 
 module JargonJuggler
@@ -9,30 +12,29 @@ module JargonJuggler
 
     def call
       if event.command? && command_aliases.include?(event.command)
-        handle_plan_command
+        handle_game_command
+      else
+        handle_potential_guess
       end
     end
 
     private
 
-    PLAN_FILE = File.expand_path("~/.plan")
-
     def command_aliases
-      %w[plan project]
+      %w[game]
     end
 
-    def handle_plan_command
+    def handle_game_command
       args = event.command_args
-      subcommand = args.shift
-      if subcommand == "set"
+      gametype = args.shift
+      if gametype == "mode"
         if update_allowed?
-          plan = args.join(" ")
-          update_plan(plan)
+          update_game_type(args)
         else
           client.send_message "Permission denied."
         end
       else
-        announce_plan
+        announce_game_modes
       end
     end
 
@@ -40,22 +42,15 @@ module JargonJuggler
       event.user == client.channel.name
     end
 
-    def update_plan(plan)
-      client.memory.store("plan", plan)
-      client.send_message "Plan set to '#{plan}'"
+    def update_game_type(args)
+      game = args[0]
+      client.memory.store("game", game)
+      client.send_message "Game set to '#{game}'"
     end
 
-    def announce_plan
-      plan = client.memory.retrieve("plan")
-      client.send_message "#{client.channel.name}'s plan: #{plan}"
-    end
-
-    def plan_file_content
-      if File.exist?(PLAN_FILE)
-        File.read(PLAN_FILE)
-      else
-        "Error: Plan file missing!"
-      end
+    def announce_game_modes
+      game = client.memory.retrieve("game")
+      client.send_message "#{client.channel.name}'s game: #{game}; available: #{Game.modes.join(', ')}"
     end
   end
 end
