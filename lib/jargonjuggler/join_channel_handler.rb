@@ -6,7 +6,7 @@ require_relative "game/anagrammer"
 module JargonJuggler
   class JoinChannelHandler < Twitch::Bot::EventHandler
     def call
-      client.send_message "JargonJuggler initialized."
+      client.send_message("JargonJuggler initialized.")
     end
 
     def self.handled_events

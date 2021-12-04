@@ -1,9 +1,14 @@
 module JargonJuggler
     module Game
-        @@modes = {} # name : class
+        @@modes = {} # game name : game class
+        @@channels = {} # channel name : game instance
         class << self
             def modes
                 @@modes.keys
+            end
+
+            def channels
+                @@channels
             end
 
             def [](name)
