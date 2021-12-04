@@ -1,8 +1,8 @@
-# Teneggs
+# Jargon Juggler
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/teneggs`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Please make sure to visit https://twitchapps.com/tmi/ with your chatbot account
+logged in and then input the correct information into env.sh before starting the
+bot via executing "dev-mode.sh".
 
 ## Installation
 
