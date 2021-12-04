@@ -10,7 +10,6 @@ module JargonJuggler
                 @faces = Regexp.new((("a".."p").to_a + ["qu"] + ("r".."z").to_a).join("|"))
             end
             def start()
-                @board = []
                 @guesses = {} # guess : { guesser : time, ... }
             end
             def score()
@@ -54,6 +53,34 @@ module JargonJuggler
                     }.compact()
                 }
             end
+            def present?(word)
+                chunks = word.scan(@faces)
+                start_chunk = chunks.shift()
+                @board.each_with_index {|face, cubeno|
+                    if face == start_chunk
+                        if search(chunks, cubeno, {cubeno: true})
+                            return true
+                        end
+                    end
+                }
+            end
+            def search(chunks, location, usemap)
+                @neighbors[location].each {|neighbor|
+                    unless usemap[neighbor]
+                        if @board[neighbor] == chunks.first
+                            rest = chunks[1..-1]
+                            if rest.empty?
+                                return true
+                            end
+                            usemap[neighbor] = true
+                            if search(rest, neighbor, usemap)
+                                return true
+                            end
+                            usemap[neighbor] = false
+                        end
+                    end
+                }
+            end
             def stop()
                 score()
             end
@@ -73,9 +100,6 @@ module JargonJuggler
             def valid?(word)
                 return false if word.size < 4
                 present?(word) and spelled?(word)
-            end
-            def present?(word)
-                true
             end
             def spelled?(word)
                 @dictionary[word]
@@ -97,7 +121,7 @@ module JargonJuggler
             end
             def guess(user, text)
                 word = text[/[^[:space:]]+/].downcase
-                @client.send_message("#{user} guessed #{word}")
+                # @client.send_message("#{user} guessed #{word}")
                 guesses = @guesses[word] ||= {}
                 guesses[user] ||= Time.now
             end
