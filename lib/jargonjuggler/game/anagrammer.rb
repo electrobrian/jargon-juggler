@@ -24,8 +24,8 @@ module JargonJuggler
                 sorted.each {|score, user| @client.send_message("#{user}: #{score} points")}
             end
             def board(*configuration)
-                if configuration.size == 0
-                    @client.send_message("Current board: " + @board)
+                if configuration == [[]]
+                    @client.send_message("Current board: " + @board.inspect)
                 else
                     faces = []
                     configuration.each {|section| section.each {|s| s.scan(@faces) {|face| faces << face}}}
