@@ -8,20 +8,32 @@ module JargonJuggler
                     dict.each_line {|line| @dictionary[line.chomp.downcase] = true}
                 }
                 @faces = Regexp.new((("a".."p").to_a + ["qu"] + ("r".."z").to_a).join("|"))
+                @round_timer = 60.0
             end
             def start()
                 @guesses = {} # guess : { guesser : time, ... }
+                @start = Time.now
+                @client.send_message("Round started at #{@start}")
             end
             def score()
                 scores = Hash.new(0) # user : score
+                counted = {} # user : [ match, ... ] 
                 @guesses.each {|guess, guessers|
+                    guessers = guessers.find_all {|u, t| t >= @start and t <= @start + @round_timer}
                     if guessers.size == 1 and valid?(guess)
-                        scores[guessers.keys.first] += points(guess)
+                        scores[guessers.first.first] += points(guess)
+                        (counted[guessers.first.first] ||= []) << guess
                     end
                 }
                 sorted = scores.collect {|user, score| [score, user]}.sort {|rowA, rowB| rowB <=> rowA}
-                @client.send_message("Scores for this round:")
-                sorted.each {|score, user| @client.send_message("#{user}: #{score} points")}
+                left = @start + @round_timer - Time.now
+                time_status = if left <= 0
+                    ""
+                else
+                    " (#{left}s remaining)"
+                end
+                @client.send_message("Scores for this round#{time_status}:")
+                sorted.each {|score, user| @client.send_message("#{user} got #{score} points for: #{counted[user].join(', ')}")}
             end
             def board(*configuration)
                 if configuration == [[]]
