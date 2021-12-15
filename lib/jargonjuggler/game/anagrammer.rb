@@ -10,10 +10,13 @@ module JargonJuggler
                 @faces = Regexp.new((("a".."p").to_a + ["qu"] + ("r".."z").to_a).join("|"))
                 @round_timer = 60.0
             end
+            def send(msg)
+                @client.send_message(msg)
+            end
             def start()
                 @guesses = {} # guess : { guesser : time, ... }
                 @start = Time.now
-                @client.send_message("Round started at #{@start}")
+                send("Round started at #{@start}")
             end
             def score()
                 scores = Hash.new(0) # user : score
@@ -32,16 +35,29 @@ module JargonJuggler
                 else
                     " (#{left}s remaining)"
                 end
-                @client.send_message("Scores for this round#{time_status}:")
-                sorted.each {|score, user| @client.send_message("#{user} got #{score} points for: #{counted[user].join(', ')}")}
+                send("Scores for this round#{time_status}:")
+                sorted.each {|score, user| send("#{user} got #{score} points for: #{counted[user].join(', ')}")}
             end
             def board(*configuration)
-                if configuration == [[]]
-                    @client.send_message("Current board: " + @board.inspect)
+                if configuration.empty?
+                    send("Current board: " + @board.inspect)
                 else
                     faces = []
-                    configuration.each {|section| section.each {|s| s.scan(@faces) {|face| faces << face}}}
+                    configuration.each {|s| s.scan(@faces) {|face| faces << face}}
                     load_board(faces)
+                end
+            end
+            def timer(*configuration)
+              if configuration.empty?
+                  send("Round timer: #{@round_timer} seconds.")
+                else
+                    begin
+                        new_value = configuration.first.to_f
+                        raise("Invalid timer.") if new_value <= 0.0
+                        @round_timer = new_value
+                    rescue Exception => e
+                        send(e.message)
+                    end
                 end
             end
             NEIGHBORS = [[-1, -1], [+0, -1], [+1, -1],
@@ -98,15 +114,17 @@ module JargonJuggler
             end
 
             def command(args)
-                case args[0]
+                case args.shift
                 when "board"
-                    board(args[1..-1])
-                when "score"
+                    board(*args)
+                when /^(score|points)$/
                     score()
                 when "start"
                     start()
                 when "stop"
                     stop()
+                when "timer"
+                    timer(*args)
                 end
             end
             def valid?(word)
@@ -133,7 +151,7 @@ module JargonJuggler
             end
             def guess(user, text)
                 word = text[/[^[:space:]]+/].downcase
-                # @client.send_message("#{user} guessed #{word}")
+                # send("#{user} guessed #{word}")
                 guesses = @guesses[word] ||= {}
                 guesses[user] ||= Time.now
             end
