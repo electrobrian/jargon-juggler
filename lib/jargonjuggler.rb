@@ -18,6 +18,10 @@ module JargonJuggler
         register_handler(JargonJuggler::JoinChannelHandler)
         register_handler(JargonJuggler::ChannelCommandHandler)
       end
+      # Monkey-patch to not reverse output lines.
+      def @client.send_message(message)
+        messages_queue.unshift(message) if messages_queue.last != message
+      end
     end
 
     def run
