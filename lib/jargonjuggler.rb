@@ -33,10 +33,11 @@ module JargonJuggler
     attr_reader :client
 
     def adapter_class
-      if development_mode?
-        "Twitch::Bot::Adapter::Terminal"
-      else
+      case ENV["BOT_MODE"]
+      when /twitch/i
         "Twitch::Bot::Adapter::Irc"
+      else
+        "Twitch::Bot::Adapter::Terminal"
       end
     end
 
@@ -68,10 +69,6 @@ module JargonJuggler
 
     def loglevel
       (ENV["BOT_LOGLEVEL"] || "info").to_sym
-    end
-
-    def development_mode?
-      ENV["BOT_MODE"] == "development"
     end
   end
 end
