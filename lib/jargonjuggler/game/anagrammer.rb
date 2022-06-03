@@ -19,6 +19,8 @@ module JargonJuggler
 
             def initialize(client)
                 @client = client
+                @guesses = {}
+                @users = {}
                 @dictionary = {}
                 File.open(File.dirname(__FILE__) + "/web2.txt") {|dict|
                     dict.each_line {|line| @dictionary[line.chomp.downcase] = true}
@@ -51,6 +53,18 @@ module JargonJuggler
                 @client.send_message(msg)
             end
 
+            def render_user(user_id)
+              user = @users[user_id]
+              rendered = user.first_name
+              if user.last_name
+                rendered += " " + user.last_name
+              end
+              if user.username
+                rendered += " (@#{user.username})"
+              end
+              rendered 
+            end
+
             def start()
                 @guesses = {} # guess : { guesser : time, ... }
                 @start = Time.now
@@ -75,7 +89,7 @@ module JargonJuggler
                     " (#{left}s remaining)"
                 end
                 send("Scores for this round#{time_status}:")
-                sorted.each {|score, user| send("#{user} got #{score} points for: #{counted[user].join(', ')}")}
+                sorted.each {|score, user| send("#{render_user(user)} got #{score} points for: #{counted[user].join(', ')}")}
             end
 
             def board(*configuration)
@@ -236,7 +250,8 @@ module JargonJuggler
                 word = text[/[^[:space:]]+/].downcase
                 # send("#{user} guessed #{word}")
                 guesses = @guesses[word] ||= {}
-                guesses[user] ||= Time.now
+                guesses[user.id] ||= Time.now
+                @users[user.id] ||= user
             end
         end
         Game["anagrammer"] = Anagrammer

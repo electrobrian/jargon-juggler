@@ -1,0 +1,80 @@
+require "dotenv/load"
+require "telegram/bot"
+
+require_relative "game"
+require_relative "game/anagrammer"
+
+# frozen_string_literal: true
+
+module JargonJuggler
+  class TelegramBotClient
+    def run()
+      Telegram::Bot::Client.run(ENV["JARGONJUGGLER_TELEGRAM_BOT_API_TOKEN"]) {|bot|
+        @bot = bot
+        @bot.listen {|message|
+          case message
+          when Telegram::Bot::Types::Message
+            @chat_id = message.chat.id
+            if message.text and message.text[0] != '/'
+              curgame.guess(message.from, message.text)
+            elsif message.text
+              args = message.text[1..-1].split
+              command = args[0]
+              if command == "mode"
+                if update_allowed?
+                  update_game_type(args[1])
+                else
+                  send_message("Permission denied.")
+                end
+              else
+                curgame.command(args)
+              end
+            end
+          end
+        }
+      }
+    end
+
+    def send_message(text)
+      @bot.api.send_message(chat_id: @chat_id, text: text)
+    end
+
+    private
+
+    def update_allowed?
+      # event.user == client.channel.name
+      true
+    end
+
+    class NullGame
+      def command(args)
+      end
+      def guess(user, text)
+      end
+      def start()
+      end
+      def stop()
+      end
+
+      def self.[]
+        @@singleton ||= NullGame.new
+      end
+    end
+
+    def curgame
+      Game.channels[@chat_id] || NullGame[]
+    end
+
+    def curgame=(game)
+      Game.channels[@chat_id] = game
+    end
+
+    def update_game_type(game)
+      c = curgame()
+      c && c.stop()
+      c = self.curgame = Game[game].new(self)
+      send_message("Game set to '#{game}'")
+      c.start()
+    end
+  end
+end
