@@ -8,14 +8,14 @@ module JargonJuggler
                     4 => [ %w(A A E E G N), %w(A B B J O O), %w(A C H O P S), %w(A F F K P S),
                            %w(A O O T T W), %w(C I M O T U), %w(D E I L R X), %w(D E L R V Y),
                            %w(D I S T T Y), %w(E I O S S T), %w(E E I N S U), %w(E E G H N W),
-                           %w(E H R T V W), %w(E L R T T Y), %w(H I M N Qu U),%w(H L N N R Z) ],
+                           %w(E H R T V W), %w(E L R T T Y), %w(H I M N Qu U),%w(H L N N R Z) ].freeze,
                     5 => [ %w(Qu B J K Z X),%w(L P C E T I), %w(H O L D R N), %w(C P T E I S), %w(L R D H H O),
                            %w(E E M E E A), %w(P I R Y R R), %w(T E N C C S), %w(Y I S A F R), %w(N S S U S E),
                            %w(F I S P R Y), %w(A R F S A I), %w(N O W O U T), %w(I T E I I I), %w(H O L D R N),
                            %w(E E A E E A), %w(T O O O U T), %w(M E T O T T), %w(G R O W R V), %w(A E U G M E),
-                           %w(R A A F A S), %w(E N D N N A), %w(D O N D H T), %w(T I E C L I), %w(G E N A N M) ]
-                }
-            }
+                           %w(R A A F A S), %w(E N D N N A), %w(D O N D H T), %w(T I E C L I), %w(G E N A N M) ].freeze
+                }.freeze
+            }.freeze
 
             def initialize(client)
                 @client = client
@@ -33,15 +33,15 @@ module JargonJuggler
             NEIGHBORS = [[-1, -1], [+0, -1], [+1, -1],
                          [-1, +0],           [+1, +0],
                          [-1, +1], [+0, +1], [+1, +1]]
-            def setup_neighbors(width)
+            def setup_neighbors()
                 i = -1
                 @neighbors = @board.collect {|face|
                     i += 1
-                    here = [i / width, i % width]
+                    here = [i / @width, i % @width]
                     NEIGHBORS.collect {|offset|
                         there = [here[0] + offset[0], here[1] + offset[1]]
-                        if there[0] >= 0 and there[0] < width and there[1] >= 0 and there[1] < width
-                            there[1] * width + there[0]
+                        if there[0] >= 0 and there[0] < @width and there[1] >= 0 and there[1] < @width
+                            there[1] * @width + there[0]
                         else
                             nil
                         end
@@ -51,6 +51,10 @@ module JargonJuggler
 
             def send(msg)
                 @client.send_message(msg)
+            end
+
+            def send_board(msg)
+                @client.send_board(msg)
             end
 
             def render_user(user_id)
@@ -94,7 +98,17 @@ module JargonJuggler
 
             def board(*configuration)
                 if configuration.empty?
-                    send("Current board: " + @board.inspect)
+                    b = "Current board:<pre>\n"
+                    @board.each_with_index {|e, i|
+                        format = if i % @width < @width - 1
+                            "%-3s"
+                        else
+                            "%s\n"
+                        end
+                        b << format % e
+                    }
+                    b << "</pre>"
+                    send_board(b)
                 else
                     dice = []
                     configuration.each {|s| s.scan(@grapheme_corpus) {|face| grapheme_corpus << face}}
@@ -113,7 +127,7 @@ module JargonJuggler
                 end
                 # Reinitialize to a full set of dice for the given board size.
                 def reset
-                    @dice = DICE_SETS["bonkle"][@width]
+                    @dice = DICE_SETS["bonkle"][@width].dup
                 end
                 # Take random dice from the set.  With no arguments or passed 1,
                 # return the single string from one die, else an Array of strings
@@ -150,9 +164,10 @@ module JargonJuggler
             end
 
             def shake(width, *rest)
-                width = width.to_i
-                @board = RandomDice.new(width).grab(width * width)
-                setup_neighbors(width)
+                @width = width.to_i
+                @board = RandomDice.new(@width).grab(@width * @width)
+                setup_neighbors()
+                board()
             end
 
             def timer(*configuration)
@@ -171,9 +186,10 @@ module JargonJuggler
 
             def load_board(dice)
                 # load the @board and assign neighbors for each cube so we can scan and validate
-                width = Math.sqrt(dice.size).to_i
+                @width = Math.sqrt(dice.size).to_i
                 @board = dice
-                setup_neighbors(width)
+                setup_neighbors()
+                board()
             end
 
             def present?(word)
@@ -210,6 +226,8 @@ module JargonJuggler
 
             def command(args)
                 case args.shift
+                when "bump"
+                  @client.bump_board()
                 when "board"
                     board(*args)
                 when "shake"
@@ -252,6 +270,7 @@ module JargonJuggler
                 guesses = @guesses[word] ||= {}
                 guesses[user.id] ||= Time.now
                 @users[user.id] ||= user
+                @client.bump_board()
             end
         end
         Game["anagrammer"] = Anagrammer
