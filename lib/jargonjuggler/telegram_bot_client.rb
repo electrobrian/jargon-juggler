@@ -102,7 +102,6 @@ module JargonJuggler
       c && c.stop()
       c = self.curgame = Game[game].new(self)
       send_message("Game set to '#{game}'")
-      c.start()
     end
   end
 end

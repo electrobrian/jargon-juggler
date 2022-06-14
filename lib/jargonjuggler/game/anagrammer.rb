@@ -60,9 +60,9 @@ module JargonJuggler
             def render_user(user_id)
               user = @users[user_id]
               rendered = user.first_name
-              if user.last_name
-                rendered += " " + user.last_name
-              end
+#              if user.last_name
+#                rendered += " " + user.last_name
+#              end
               if user.username
                 rendered += " (@#{user.username})"
               end
@@ -70,9 +70,15 @@ module JargonJuggler
             end
 
             def start()
+                stop() if @start
                 @guesses = {} # guess : { guesser : time, ... }
                 @start = Time.now
-                send("Round started at #{@start}")
+                @timer = Thread.new {
+                    sleep(@round_timer)
+                    @timer = nil
+                    stop()
+                }
+                send("Round started at #{@start} (#{@round_timer}s duration)")
             end
 
             def score()
@@ -167,6 +173,7 @@ module JargonJuggler
                 @width = width.to_i
                 @board = RandomDice.new(@width).grab(@width * @width)
                 setup_neighbors()
+                start()
                 board()
             end
 
@@ -189,6 +196,7 @@ module JargonJuggler
                 @width = Math.sqrt(dice.size).to_i
                 @board = dice
                 setup_neighbors()
+                start()
                 board()
             end
 
@@ -220,8 +228,15 @@ module JargonJuggler
                     end
                 }
             end
+
             def stop()
+                return if !@start
+                if @timer
+                    @timer.kill
+                    @timer = nil
+                end
                 score()
+                @start = nil
             end
 
             def command(args)
